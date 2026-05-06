@@ -1,31 +1,329 @@
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-#gameCanvas { display: block; width: 100%; max-width: 380px; margin: 0 auto; touch-action: none; user-select: none; -webkit-user-select: none; }
-#ui { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 380px; pointer-events: none; }
-#wrapper { position: relative; width: 100%; max-width: 380px; margin: 0 auto; background: #0a1628; overflow: hidden; }
-.screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a1628; }
-#startScreen { z-index: 10; padding: 20px; background: linear-gradient(180deg, #0d1f3c 0%, #1a3a6b 100%); }
-.title-text { font-family: 'Arial Black', sans-serif; font-size: 28px; font-weight: 900; color: #fff; letter-spacing: 3px; text-shadow: 0 0 20px rgba(100,180,255,0.8); margin-bottom: 4px; }
-.subtitle-text { font-size: 14px; color: #8ab4d4; margin-bottom: 24px; letter-spacing: 2px; }
-.card-box { background: linear-gradient(135deg, #c8a96e, #e8cc88, #c8a96e); border-radius: 16px; border: 3px solid #f0d890; padding: 16px; width: 100%; max-width: 320px; box-shadow: 0 4px 20px rgba(200,169,110,0.4); }
-.card-title { font-size: 18px; font-weight: 700; color: #4a2c00; text-align: center; margin-bottom: 12px; }
-.rewards { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
-.reward-card { background: #f5e09a; border: 2px solid #c8a030; border-radius: 10px; width: 56px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #6b4400; font-weight: 700; position: relative; }
-.reward-icon { font-size: 20px; }
-.lock-icon { position: absolute; bottom: 4px; font-size: 10px; }
-.score-info { text-align: center; font-size: 12px; color: #6b4400; margin: 8px 0; }
-.btn-row { display: flex; gap: 12px; margin-top: 12px; }
-.btn-green { flex: 1; background: linear-gradient(180deg, #7dd860, #4daa30); border: none; border-radius: 24px; color: #fff; font-size: 16px; font-weight: 700; padding: 12px; cursor: pointer; box-shadow: 0 4px 0 #2d7a10; pointer-events: all; transition: transform 0.1s; }
-.btn-blue { flex: 1; background: linear-gradient(180deg, #60c8e8, #2898c8); border: none; border-radius: 24px; color: #fff; font-size: 16px; font-weight: 700; padding: 12px; cursor: pointer; box-shadow: 0 4px 0 #1060a0; pointer-events: all; transition: transform 0.1s; }
-.btn-green:active, .btn-blue:active { transform: translateY(2px); }
-#gameOverScreen { z-index: 10; background: rgba(5,15,40,0.95); padding: 24px; display: none; flex-direction: column; align-items: center; }
-.go-title { font-size: 36px; font-weight: 900; color: #ff6060; text-shadow: 0 0 20px rgba(255,80,80,0.8); margin-bottom: 8px; font-family: 'Arial Black', sans-serif; }
-.go-dist { font-size: 18px; color: #8ae8ff; margin-bottom: 4px; }
-.go-best { font-size: 14px; color: #6090b0; margin-bottom: 24px; }
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Zakka Journey | 旅遊翻譯與導航</title>
+  
+  <!-- 引入 Google Fonts (Manrope + Plus Jakarta Sans + 日系圓潤字體 Kiwi Maru) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&family=Manrope:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- 引入 Phosphor Icons (質感線條圖示) -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <!-- 引入 Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  
+  <!-- 引入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tailwind 自訂設定 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Manrope', 'sans-serif'],
+            body: ['"Plus Jakarta Sans"', 'sans-serif'],
+            zakka: ['"Kiwi Maru"', 'serif'],
+          },
+          colors: {
+            // 核心溫暖色調
+            'surface-base': '#F7F4EB',       // 溫暖米色基底
+            'surface-nest': '#EBE7DB',       // 微微加深的米色，用於次要區塊
+            'card': '#FFFFFF',               // 卡片純白
+            'primary': '#7A6B5D',            // 大地色 (主文字與圖示)
+            'primary-light': '#9C8F82',
+            'accent-pink': '#E8B4B8',        // 暖粉色 (按鈕與強調)
+            'accent-green': '#A4B494',       // 鼠尾草綠 (次要強調)
+            'text-main': '#4A4238',          // 柔和深棕色，取代死黑
+            'text-muted': '#968E85',         // 輔助文字
+          },
+          boxShadow: {
+            // 輕柔環境陰影
+            'soft': '0 12px 40px -12px rgba(122, 107, 93, 0.12)',
+            'float': '0 20px 40px -10px rgba(232, 180, 184, 0.25)',
+          }
+        }
+      }
+    }
+  </script>
 
-/* Shake Animation */
-@keyframes shake {
-  0% { transform: translate(1px, 1px) rotate(0deg); }
-  20% { transform: translate(-1px, -2px) rotate(-1deg); }
-  40% { transform: translate(-3px, 0px) rotate(1deg); }
-  60% { transform: translate(3px, Normally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.
+  <style>
+    body {
+      background-color: #F7F4EB;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* 隱藏滾動條但保留滾動功能 */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    
+    /* 毛玻璃效果 */
+    .glass-nav {
+      background: rgba(247, 244, 235, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    /* 確保輸入框沒有預設的外框 */
+    textarea:focus, input:focus {
+      outline: none;
+      box-shadow: none;
+    }
+
+    /* Vue 動畫過渡 */
+    .fade-enter-active, .fade-leave-active {
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .fade-enter-from, .fade-leave-to {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  </style>
+</head>
+
+<body class="font-body text-text-main antialiased selection:bg-accent-pink selection:text-white">
+  
+  <div id="app" class="max-w-md mx-auto bg-surface-base min-h-screen relative shadow-sm overflow-hidden flex flex-col">
+    
+    <!-- 頂部標頭 -->
+    <header class="pt-12 pb-6 px-7 flex justify-between items-center z-10">
+      <div>
+        <p class="text-xs font-semibold text-text-muted mb-1 tracking-wider uppercase font-display">Wanderlust</p>
+        <h1 class="text-3xl font-display text-primary font-bold tracking-tight">手帳旅記 <span class="text-accent-pink">.</span></h1>
+      </div>
+      <div class="w-12 h-12 bg-card rounded-[1rem] shadow-soft flex items-center justify-center text-primary-light relative">
+        <i class="ph ph-flower-lotus text-2xl"></i>
+        <div class="absolute -top-1 -right-1 w-3 h-3 bg-accent-pink rounded-full border-2 border-surface-base"></div>
+      </div>
+    </header>
+
+    <!-- 主選單切換 (Pills) -->
+    <div class="px-7 mb-6">
+      <div class="flex bg-surface-nest p-1.5 rounded-full">
+        <button 
+          @click="currentTab = 'translate'" 
+          :class="['flex-1 py-3 text-sm font-bold rounded-full transition-all duration-300', 
+                   currentTab === 'translate' ? 'bg-card shadow-sm text-primary' : 'text-text-muted']">
+          翻譯小助手
+        </button>
+        <button 
+          @click="currentTab = 'map'" 
+          :class="['flex-1 py-3 text-sm font-bold rounded-full transition-all duration-300', 
+                   currentTab === 'map' ? 'bg-card shadow-sm text-primary' : 'text-text-muted']">
+          行程與導航
+        </button>
+      </div>
+    </div>
+
+    <!-- 內容區塊 (具備滑動動畫) -->
+    <div class="flex-1 px-7 pb-28 overflow-y-auto">
+      <transition name="fade" mode="out-in">
+        
+        <!-- Tab 1: 翻譯功能 -->
+        <div v-if="currentTab === 'translate'" key="translate" class="space-y-6">
+          
+          <!-- 輸入卡片 -->
+          <div class="bg-card rounded-[2rem] p-6 shadow-soft transition-transform duration-300">
+            <div class="flex justify-between items-center mb-4 text-xs font-bold text-text-muted tracking-wider">
+              <span>中 <i class="ph ph-arrow-right inline-block mx-1"></i> 日</span>
+              <i class="ph ph-translate text-lg"></i>
+            </div>
+            
+            <textarea 
+              v-model="inputText"
+              placeholder="想說些什麼呢..." 
+              class="w-full bg-transparent resize-none text-lg font-zakka text-text-main placeholder-primary-light/50 h-24 border-0"
+            ></textarea>
+            
+            <div class="flex justify-end mt-2">
+              <button 
+                @click="doTranslate"
+                class="bg-accent-pink text-white font-bold py-3 px-6 rounded-2xl shadow-float flex items-center gap-2 hover:opacity-90 transition-opacity active:scale-95">
+                翻譯 <i class="ph-bold ph-paper-plane-tilt"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 翻譯結果卡片 (模擬顯示) -->
+          <div v-if="translatedText" class="bg-primary text-surface-base rounded-[2rem] p-6 shadow-soft mt-6 relative overflow-hidden">
+            <!-- 裝飾背景圖形 -->
+            <div class="absolute -right-6 -bottom-6 opacity-10">
+              <i class="ph-fill ph-quotes text-9xl"></i>
+            </div>
+            <p class="text-sm font-semibold opacity-70 mb-3 tracking-widest">TRANSLATION</p>
+            <p class="text-2xl font-zakka leading-relaxed">{{ translatedText }}</p>
+            
+            <div class="flex gap-3 mt-6 relative z-10">
+              <button class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm">
+                <i class="ph-bold ph-speaker-high"></i>
+              </button>
+              <button class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm">
+                <i class="ph-bold ph-copy"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 日常用語小提示 -->
+          <div class="bg-accent-green/20 rounded-[1.5rem] p-5 flex items-start gap-4">
+            <div class="w-10 h-10 bg-accent-green text-white rounded-full flex shrink-0 items-center justify-center shadow-sm">
+              <i class="ph-fill ph-coffee"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-primary mb-1">每日一句</h3>
+              <p class="text-sm text-text-main font-zakka">請問有帶花果香的淺焙豆嗎？</p>
+              <p class="text-xs text-text-muted mt-1">フルーティーな浅煎りの豆はありますか？</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Tab 2: 行程與地圖導航 -->
+        <div v-else key="map" class="space-y-6">
+          
+          <!-- 當前行程卡片 -->
+          <div class="bg-card rounded-[2rem] p-6 shadow-soft">
+            <div class="flex justify-between items-start mb-5">
+              <div>
+                <p class="text-xs font-bold text-accent-pink tracking-wider mb-1">NEXT STOP</p>
+                <h2 class="text-xl font-display font-bold text-primary">中目黑 散策與咖啡</h2>
+                <p class="text-sm text-text-muted mt-1">14:00 PM - 預計停留 2 小時</p>
+              </div>
+              <div class="w-12 h-12 bg-surface-nest rounded-2xl flex items-center justify-center text-primary">
+                <i class="ph-fill ph-map-pin text-2xl"></i>
+              </div>
+            </div>
+
+            <!-- Google Maps 整合 (使用 iframe 嵌入) -->
+            <div class="w-full h-48 rounded-[1.5rem] overflow-hidden shadow-inner bg-surface-nest mb-5 relative">
+              <!-- 這裡替換為真實的 Google Maps Embed 或是 API -->
+              <iframe 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d12966.8665798993!2d139.69176882260195!3d35.64151740957962!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x60188b4eb1b842eb%3A0xc6c76e271bb8c319!2sNakameguro%2C%20Meguro%20City%2C%20Tokyo%20153-0061%2C%20Japan!5e0!3m2!1sen!2stw!4v1700000000000!5m2!1sen!2stw" 
+                width="100%" 
+                height="100%" 
+                style="border:0;" 
+                allowfullscreen="" 
+                loading="lazy" 
+                referrerpolicy="no-referrer-when-downgrade">
+              </iframe>
+            </div>
+
+            <button 
+              @click="startNavigation"
+              class="w-full bg-primary text-white font-bold py-3.5 px-6 rounded-2xl shadow-float flex items-center justify-center gap-2 hover:bg-primary-light transition-colors active:scale-95">
+              <i class="ph-bold ph-navigation-arrow"></i> 開始導航 (Google Maps)
+            </button>
+          </div>
+
+          <!-- 行程列表 -->
+          <h3 class="font-bold text-primary px-2 text-lg">今日行程</h3>
+          <div class="space-y-4">
+            <!-- 已完成 -->
+            <div class="flex gap-4 opacity-50 px-2">
+              <div class="flex flex-col items-center">
+                <div class="w-4 h-4 bg-primary rounded-full mt-1"></div>
+                <div class="w-0.5 h-full bg-primary mt-2"></div>
+              </div>
+              <div class="pb-2">
+                <p class="font-bold text-text-main text-sm">11:00 AM</p>
+                <p class="text-text-main font-zakka">代官山 T-Site 逛逛</p>
+              </div>
+            </div>
+            <!-- 進行中 -->
+            <div class="flex gap-4 px-2">
+              <div class="flex flex-col items-center">
+                <div class="w-4 h-4 bg-accent-pink rounded-full shadow-[0_0_0_4px_rgba(232,180,184,0.3)] mt-1"></div>
+                <div class="w-0.5 h-full bg-surface-nest mt-2"></div>
+              </div>
+              <div class="pb-2">
+                <p class="font-bold text-accent-pink text-sm">14:00 PM</p>
+                <p class="text-text-main font-zakka text-lg font-bold">中目黑 散策與手沖咖啡</p>
+              </div>
+            </div>
+            <!-- 未來 -->
+            <div class="flex gap-4 px-2">
+              <div class="flex flex-col items-center">
+                <div class="w-4 h-4 border-2 border-text-muted rounded-full mt-1 bg-surface-base"></div>
+              </div>
+              <div class="pb-2">
+                <p class="font-bold text-text-muted text-sm">18:30 PM</p>
+                <p class="text-text-main font-zakka">涉谷 晚餐與文具店尋寶</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </transition>
+    </div>
+
+    <!-- 懸浮底部導航 (Glassmorphism) -->
+    <div class="absolute bottom-6 left-0 right-0 px-7 z-20">
+      <nav class="glass-nav rounded-full px-6 py-4 flex justify-between items-center shadow-soft">
+        <button class="flex flex-col items-center gap-1 text-primary">
+          <i class="ph-fill ph-house text-2xl"></i>
+          <span class="text-[10px] font-bold">首頁</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 text-text-muted hover:text-primary transition-colors">
+          <i class="ph ph-compass text-2xl"></i>
+          <span class="text-[10px] font-bold">探索</span>
+        </button>
+        <!-- 中間突出的按鈕 -->
+        <button class="w-12 h-12 bg-accent-pink text-white rounded-full flex items-center justify-center shadow-float -translate-y-4 hover:scale-105 transition-transform">
+          <i class="ph-bold ph-plus text-xl"></i>
+        </button>
+        <button class="flex flex-col items-center gap-1 text-text-muted hover:text-primary transition-colors">
+          <i class="ph ph-camera text-2xl"></i>
+          <span class="text-[10px] font-bold">紀錄</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 text-text-muted hover:text-primary transition-colors">
+          <i class="ph ph-gear-six text-2xl"></i>
+          <span class="text-[10px] font-bold">設定</span>
+        </button>
+      </nav>
+    </div>
+
+  </div>
+
+  <!-- Vue 應用程式邏輯 -->
+  <script>
+    const { createApp, ref } = Vue;
+
+    createApp({
+      setup() {
+        const currentTab = ref('translate'); // 預設顯示翻譯頁面
+        const inputText = ref('');
+        const translatedText = ref('');
+
+        // 模擬翻譯功能
+        const doTranslate = () => {
+          if (!inputText.value.trim()) return;
+          
+          // 這裡可以串接真正的 Google Translate API 或 DeepL API
+          // 目前使用模擬回覆，呈現排版效果
+          translatedText.value = 'こんにちは！素晴らしい一日になりますように。 (這是一段模擬的日文翻譯結果)';
+        };
+
+        // 模擬開啟外部 Google Maps App 或跳轉導航
+        const startNavigation = () => {
+          // 實務上可以使用 window.open 帶入地理座標喚起使用者的 Google Maps App
+          // 例如: window.open('https://www.google.com/maps/dir/?api=1&destination=35.6415,139.6917', '_blank');
+          alert('即將為您開啟 Google Maps 導航！');
+        };
+
+        return {
+          currentTab,
+          inputText,
+          translatedText,
+          doTranslate,
+          startNavigation
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
