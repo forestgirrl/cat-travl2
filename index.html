@@ -699,10 +699,7 @@ function closeCard(){ document.getElementById('cv').classList.remove('open'); se
 function navCard(d){ const l=fc(); cardIdx=(cardIdx+d+l.length)%l.length; renderCard(); }
 function goCard(i){ cardIdx=i; renderCard(); }
  
-function deleteCard(id){
-  cards=cards.filter(c=>c.id!==id);
-  renderList();
-}
+ 
  
 function initSwipeRows(){
   document.querySelectorAll('.swipe-row').forEach(row=>{
@@ -1051,9 +1048,49 @@ async function sendPrompt(promptText){
   renderSb();
   renderList();
   openCard(cardIdx);
+  saveUserCards();
 }
  
-setTheme('All'); renderSb(); renderList();
+// PERSISTENT STORAGE
+const STORAGE_KEY = 'user_added_cards';
+ 
+async function saveUserCards(){
+  const userCards = cards.filter(c => c.isNew);
+  try {
+    await window.storage.set(STORAGE_KEY, JSON.stringify(userCards));
+  } catch(e) {
+    console.warn('Storage save failed:', e);
+  }
+}
+ 
+async function loadUserCards(){
+  try {
+    const result = await window.storage.get(STORAGE_KEY);
+    if(result && result.value){
+      const saved = JSON.parse(result.value);
+      if(Array.isArray(saved) && saved.length > 0){
+        // Avoid duplicates by id
+        const existingIds = new Set(cards.map(c => c.id));
+        saved.forEach(c => { if(!existingIds.has(c.id)) cards.push(c); });
+      }
+    }
+  } catch(e) {
+    console.warn('Storage load failed:', e);
+  }
+}
+ 
+function deleteCard(id){
+  cards = cards.filter(c => c.id !== id);
+  renderList();
+  saveUserCards();
+}
+ 
+async function init(){
+  await loadUserCards();
+  setTheme('All'); renderSb(); renderList();
+}
+init();
 </script>
 </body>
 </html>
+ 
